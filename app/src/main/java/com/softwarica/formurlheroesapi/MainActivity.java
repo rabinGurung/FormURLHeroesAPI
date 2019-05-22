@@ -5,6 +5,7 @@ import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.content.CursorLoader;
@@ -22,11 +23,15 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -47,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private Employee_Interface employee_interface;
     private String imagePath;
     private ImageView img;
+    private String imageName;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         img = findViewById(R.id.profileImage);
         btnsubmit.setOnClickListener(this);
         btnimage.setOnClickListener(this);
+
     }
     
     
@@ -99,6 +106,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         });
     }
 
+    private void StrictMode(){
+        StrictMode.ThreadPolicy stict =new  StrictMode.ThreadPolicy.Builder().permitAll().build();
+        StrictMode.setThreadPolicy(stict);
+    }
 
     private void PutData(String name,String desc){
         Call<Void> put = employee_interface.putData(name,desc);
@@ -119,15 +130,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
 
+
+    private void putImage(){
+        if(imagePath.isEmpty()){
+            Toast.makeText(this, "please select image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        File file = new File(imagePath);
+        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"),file);
+        MultipartBody.Part body = MultipartBody.Part.createFormData("imageFile",file.getName(),requestBody);
+        Call<ImageResponse> responseCall =  employee_interface.uploadImage(body);
+        StrictMode();
+        try {
+            Response<ImageResponse> imageResponseResponse = responseCall.execute();
+            imageName = imageResponseResponse.body().getFilename();
+            Toast.makeText(this, imageName, Toast.LENGTH_SHORT).show();
+        }catch (IOException ex){
+            Toast.makeText(this, "Error uploading image", Toast.LENGTH_SHORT).show();
+            System.out.println(ex.getMessage());
+        }
+    }
+
     private void PutDataByMap(String name,String desc){
         HashMap<String,String> map = new HashMap<>();
         map.put("name",name);
         map.put("desc",desc);
+        if(imagePath.isEmpty()){
+            Toast.makeText(this, "Please Select a image", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        map.put("image",imagePath);
         Call<Void> put = employee_interface.putAllData(map);
         put.enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
-                Toast.makeText(MainActivity.this, "Data inserted Successfully", Toast.LENGTH_SHORT).show();
+                //Toast.makeText(MainActivity.this, "Data inserted Successfully", Toast.LENGTH_SHORT).show();
                 list.clear();
                 LoadData();
             }
@@ -148,10 +185,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if(TextUtils.isEmpty(etDesc.getText())){
                 return;
             }
+            if(imagePath.isEmpty()){
+                Toast.makeText(this, "Please Select an Image", Toast.LENGTH_SHORT).show();
+                return;
+            }
             String username = etName.getText().toString();
             String description = etDesc.getText().toString();
             PutData(username,description);
-
+            putImage();
         }else if (v.getId() == R.id.imageButton){
             startActivityForResult(new Intent(Intent.ACTION_PICK).setType("image/*"),imageRequestCode);
         }
