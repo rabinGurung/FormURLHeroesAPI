@@ -28,7 +28,7 @@ public class ImageViewInternet extends AppCompatActivity implements View.OnClick
     }
 
     private void loadImage() {
-        String url = "https://www.savethekoala.com/sites/savethekoala.com/files/uploads/25.jpg";
+        String url = "http://10.0.2.2:3000/uploads/imageFile.jpg";
         new BackgroundTask(image).execute(url);
     }
 

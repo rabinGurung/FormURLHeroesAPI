@@ -21,6 +21,7 @@ public interface Employee_Interface {
     @POST("heroes")
     Call<Void> putData(@Field("name") String name, @Field("desc") String password);
 
+    @FormUrlEncoded
     @POST("heroes")
     Call<Void> putAllData(@FieldMap HashMap<String, String> item);
 

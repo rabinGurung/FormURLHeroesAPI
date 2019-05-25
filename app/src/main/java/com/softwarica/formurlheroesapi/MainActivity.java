@@ -11,20 +11,19 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.CursorLoader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
-import android.text.method.ReplacementTransformationMethod;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,13 +37,13 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements View.OnClickListener, BlankFragment.GetDataFrag {
 
     private static final int imageRequestCode =  0;
-
+    public static final String ServerURL = "http://10.0.2.2:3000/";
     private EditText etName, etDesc;
     private ImageButton btnimage;
-    private ListView listView;
+    private RecyclerView cycle;
     private List list = new ArrayList();
     private ArrayAdapter<String> arrayAdapter;
     private Button btnsubmit;
@@ -53,6 +52,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private String imagePath;
     private ImageView img;
     private String imageName;
+    private RecyclerAdapter adapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void getConnection() {
-        retrofit = new Retrofit.Builder().baseUrl("http://10.0.2.2:3000/").addConverterFactory(GsonConverterFactory.create()).build();
+        retrofit = new Retrofit.Builder().baseUrl(ServerURL).addConverterFactory(GsonConverterFactory.create()).build();
         employee_interface = retrofit.create(Employee_Interface.class);
     }
 
@@ -75,12 +75,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         etDesc = findViewById(R.id.etDesc);
         etName = findViewById(R.id.etName);
         btnimage = findViewById(R.id.imageButton);
-        listView = findViewById(R.id.listView);
+        cycle = findViewById(R.id.cycleView);
         btnsubmit = findViewById(R.id.btnsubmit);
         img = findViewById(R.id.profileImage);
         btnsubmit.setOnClickListener(this);
         btnimage.setOnClickListener(this);
-
+        cycle.setLayoutManager(new LinearLayoutManager(this,LinearLayoutManager.HORIZONTAL,false));
     }
     
     
@@ -91,11 +91,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             public void onResponse(Call<List<Employee>> call, Response<List<Employee>> response) {
                 if(response.isSuccessful()){
                     List<Employee> items = response.body();
-                    for(Employee emp : items){
-                        list.add(emp.getName());
-                    }
-                    createAdapter(list);
-                    listView.setAdapter(arrayAdapter);
+                    adapter = new RecyclerAdapter(MainActivity.this,items);
+                    cycle.setAdapter(adapter);
+                    Toast.makeText(MainActivity.this,items.get(0).getImage(),Toast.LENGTH_SHORT).show();
                 }
             }
 
@@ -105,6 +103,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
         });
     }
+
 
     private void StrictMode(){
         StrictMode.ThreadPolicy stict =new  StrictMode.ThreadPolicy.Builder().permitAll().build();
@@ -155,11 +154,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         HashMap<String,String> map = new HashMap<>();
         map.put("name",name);
         map.put("desc",desc);
-        if(imagePath.isEmpty()){
+        if(imagePath.isEmpty() && imageName.isEmpty()){
             Toast.makeText(this, "Please Select a image", Toast.LENGTH_SHORT).show();
             return;
         }
-        map.put("image",imagePath);
+        map.put("image",imageName);
         Call<Void> put = employee_interface.putAllData(map);
         put.enqueue(new Callback<Void>() {
             @Override
@@ -191,8 +190,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             }
             String username = etName.getText().toString();
             String description = etDesc.getText().toString();
-            PutData(username,description);
             putImage();
+            PutDataByMap(username,description);
         }else if (v.getId() == R.id.imageButton){
             startActivityForResult(new Intent(Intent.ACTION_PICK).setType("image/*"),imageRequestCode);
         }
@@ -232,5 +231,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         String result = cursor.getString(columnindex);
         cursor.close();
         return result;
+    }
+
+
+    @Override
+    public void getData(String username, String password) {
+
     }
 }

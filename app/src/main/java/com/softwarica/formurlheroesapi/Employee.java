@@ -1,9 +1,21 @@
 package com.softwarica.formurlheroesapi;
 
+import android.graphics.Bitmap;
+
 public class Employee {
     private int id;
     private String name;
     private String desc;
+    private String image;
+
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
+    }
 
     public Employee(int id, String name, String desc) {
         this.id = id;
